@@ -1,10 +1,10 @@
-# AI Director Image-to-Video Prompt SKILL V2
+# AI Director Image-to-Video Prompt SKILL V4
 
 ## Skill Name
 AI Director — Cinematic Image-to-Video Prompt Designer
 
 ## 01. 任务目标（Job to be done）
-将用户上传的静态图片先理解为真实摄影机拍摄到的物理世界，再依据构图、空间层级、主体关系、真实物理、镜头情绪、时长和目标平台，生成稳定、电影化、低变形风险的图转视频提示词。
+将用户上传的静态图片先理解为真实摄影机拍摄到的物理世界，再依据构图、空间层级、主体关系、真实物理、镜头情绪、时长和目标平台，自动完成导演决策并生成稳定、电影化、低变形风险的图转视频提示词。
 
 核心目标不是“让所有元素都动”，而是：
 
@@ -12,7 +12,7 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 
 必须遵循：
 
-**结构一致性 > 镜头运动 > 一级主体运动 > 二级响应运动 > 环境动态 > 光影变化 > 风格标签**
+**结构一致性 > 风险控制 > 镜头运动 > 一级主体运动 > 二级响应运动 > 环境动态 > 光影变化 > 风格标签**
 
 禁止为了“电影感”牺牲原图构图、人物身份、建筑结构、透视关系、文字纹理和时间一致性。
 
@@ -39,6 +39,8 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 
 若非关键参数缺失，允许根据原图进行导演判断，不因次要信息缺失而中断。
 
+当用户只提供“原图 + 时长 + 平台”时，进入 **Auto Director Mode**：自动判断锁定对象、主运动、镜头、运动预算、因果关系与风险降级策略。
+
 ---
 
 ## 03. 工作流程（Step-by-step Process）
@@ -62,7 +64,21 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 - Scale Reference 尺度参照
 - Structural Lock 结构锁定
 
-### STEP 2｜结构锁定
+### STEP 2｜场景自动分类 Scene Classification
+根据原图识别 dominant_scene：
+
+- HUMAN：人物主导
+- CREATURE：动物 / 凤凰 / 仙鹤主导
+- ARCHITECTURE：古建筑 / 城市 / 宫殿主导
+- WATER：瀑布 / 江河 / 海面主导
+- ATMOSPHERE：云海 / 雾 / 烟主导
+- ENTITY：灵体 / 能量体 / 半透明巨像主导
+- TEXTURE_LOCK：书法 / 铭文 / 壁画 / 复杂纹样占大面积
+- MIXED：多主体复杂场景
+
+若同时出现复杂建筑 + 大面积文字 + 巨型动物 / 灵体，直接进入 HIGH RISK 候选。
+
+### STEP 3｜结构锁定
 通常必须锁定：
 
 - 建筑主体
@@ -80,40 +96,29 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 
 > Strictly preserve the original composition, architecture, terrain, proportions and spatial relationships. Do not redesign, deform, move or replace any major object.
 
-### STEP 3｜运动风险评级 Motion Risk Rating
-对原图进行风险评级：
+### STEP 4｜运动风险评级 Motion Risk Rating
+采用 0–10 风险分：
 
-#### LOW 低风险
-- 单主体
-- 背景简单
-- 无复杂文字
-- 无复杂建筑
-- 动作幅度小
++2：复杂古建筑、大面积文字 / 书法、巨型动物羽毛、半透明灵体、强透视、近景巨大遮挡、多主体竞争、用户要求环绕 / 快速镜头。
 
-#### MEDIUM 中风险
-- 多层空间
-- 人物 + 建筑
-- 动物羽毛 / 布料 / 云雾
-- 中等视差
++1：布料很多、云雾很多、人物很小、主体接近边缘、大面积细纹理。
 
-#### HIGH 高风险
-- 复杂古建筑
-- 大量文字 / 书法
-- 巨型动物羽毛
-- 透明灵体
-- 多主体
-- 强透视
-- 大幅隐藏面推断
+等级：
 
-若为 HIGH：
+- 0–3：LOW
+- 4–6：MEDIUM
+- 7–10：HIGH
 
-- 镜头运动减半
-- 一级主体最多1个
-- 环境动态减少
-- 禁止环绕
-- 强化结构锁定与负面约束
+HIGH 自动执行：
 
-### STEP 4｜确定真正的主运动主体
+- primary_motion = 1
+- camera_motion_strength × 0.5
+- 禁止 orbit
+- ambient_motion_count ≤ 2
+- lighting_change = minimal
+- 强化 negative constraints
+
+### STEP 5｜确定真正的主运动主体
 用户列出多个对象不代表全部明显运动。
 
 必须重排：
@@ -123,54 +128,40 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 - Ambient Motion：低频环境变化
 - Locked Objects：绝对固定对象
 
-原则：
+Auto Director 选择顺序：
 
-> 二级运动必须服务一级运动；环境运动必须服务空间感或物理因果。
+1. 用户明确指定的生命主体，但高风险时自动降级动作幅度
+2. 画面视觉锚点
+3. 具有最强叙事因果的对象
+4. 具有稳定物理运动的对象（水流 > 云雾 > 建筑）
 
-### STEP 5｜运动预算 Motion Budget
-3秒默认100单位：
+禁止把建筑主体设为一级运动，除非用户明确要求机关、坍塌、开门等剧情动作。
 
-- 摄影机 15–30
-- 一级主体 35–50
-- 二级响应 15–25
-- 环境 5–15
-- 光影 0–5
+### STEP 6｜运动预算 Motion Budget
+3秒默认以100单位理解，但根据风险保留 Safety Reserve：
 
-3秒建议：
+LOW：Camera 25 / Primary 40 / Secondary 20 / Ambient 10 / Lighting 5。
 
-- 1个主镜头运动
-- 最多2个明显主体动作
-- 2–3个环境微运动
+MEDIUM：Camera 20 / Primary 40 / Secondary 20 / Ambient 10 / Lighting 5 / Safety Reserve 5。
 
-复杂图像或高风险图像进一步降低总运动量。
+HIGH：Camera 10–15 / Primary 40–45 / Secondary 20 / Ambient 5–10 / Lighting 0–3 / Safety Reserve ≥15。
 
-### STEP 6｜镜头设计 Camera Design
-每个镜头：
+Safety Reserve 表示明确不让某些区域运动的预算。
 
-**1个主镜头运动 + 最多1个辅助运动**
-
-可选：
-
-- Static
-- Slow Push-In
-- Slow Pull-Back
-- Dolly / Truck
-- Crane Up / Down
-- Drone Glide
-- Tilt / Pan
-- Orbit（高风险，谨慎）
+### STEP 7｜镜头设计 Camera Decision Tree
+每个镜头：**1个主镜头运动 + 最多1个辅助运动**。
 
 规则：
 
-- 前景很近 → 利用轻微视差
-- 巨物已充满画面 → 少推镜
-- 建筑复杂 → 镜头克制
-- 隐藏面多 → 禁止大幅环绕
-- 压迫 → 低机位 + 慢推进
-- 宏大 → 多层景深 + 缓慢移动
-- 宁静 → 静机或极慢移动
+- 近景有巨大前景 → slow push-in / subtle dolly / tiny crane，利用视差
+- 巨物已充满画面 → static / tiny crane / micro pull-back
+- 建筑复杂 → static / slow push-in，禁止大幅 orbit
+- 压迫 → low angle + slow push-in
+- 宏大 → slow crane / drone glide + layered parallax
+- 宁静 → static 或极慢运动
+- HIGH RISK → static 或 single slow axis motion
 
-### STEP 7｜主体物理动作设计
+### STEP 8｜主体物理动作设计
 每个动作必须明确：
 
 1. 方向
@@ -182,177 +173,114 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 
 不得只写“飞、走、飘、动”。
 
-### STEP 8｜六类专项导演规则
+### STEP 9｜六类专项导演规则
 
 #### A. 人物
-适合短镜头：
-
-- 呼吸
-- 轻微抬头
-- 轻微转头
-- 视线变化
-- 手腕调整
-- 手指微动
-- 小幅衣摆 / 发丝
-
-避免：大步走、快速转身、复杂手势、剧烈旋转。
+- <10%画面：呼吸 / 微抬头 / 微转头
+- 10–30%：可加入手腕、视线、半步以内重心变化
+- >30%：可加入更明显表演，但避免复杂手指动作
 
 规则：**人物越小，动作越少。**
 
 #### B. 鸟类 / 凤凰 / 仙鹤
-优先：
-
-- 一次有重量的翼下压
-- 滑翔
-- 尾羽惯性
-- 外侧飞羽延迟弯曲
-
-避免：
-
-- 高频扇翅
-- 翅膀数量变化
-- 翼根断裂
-- 羽毛融化
-- 突然高速转向
+- 大翼已展开：优先一次有重量的翼下压 + 滑翔
+- 巨型凤凰：3秒最多一次主要扑翼
+- 羽毛与尾羽保留惯性与延迟
 
 规则：**体型越大，扑翼频率越低。**
 
 #### C. 水体 / 瀑布
-遵守：
-
-- 重力
-- 流向
-- 惯性
-- 碰撞
-- 水雾
-- 波纹
-
-主水流连续向下，水雾作为次级响应。
+遵守重力、流向、惯性、碰撞、水雾、波纹。
 
 #### D. 云 / 雾 / 烟
-默认：
-
-- slow
-- subtle
-- low-frequency
-- continuous
-
-只有存在明确外力时才产生局部扰动。
+默认 slow / subtle / low-frequency / continuous。
 
 #### E. 建筑
-默认运动预算 = 0。
-
-只允许：
-
-- 摄影机视差
-- 极轻微材质反光
-- 旗帜 / 门帘 / 悬挂物微动
-
-禁止：建筑呼吸、屋檐弯曲、斗拱变形、漂移、伸缩、重构。
+默认运动预算 = 0。只允许摄影机视差、轻微材质反光、旗帜 / 门帘等软体微动。
 
 #### F. 巨型灵体 / 能量体
-如果由水、云、火、雾、灵气构成：
-
 - Macro Shape：宏观轮廓稳定
 - Internal Medium：内部介质持续运动
 
-核心：
+核心：**形不动，质在动。**
 
-> **形不动，质在动。**
+### STEP 10｜统一风场 Wind Field
+如果画面存在2个以上受风软体，必须定义：
 
-避免让灵体行走、转身、抬手等高风险人体动作，除非用户明确要求且画面结构足够稳定。
+- direction
+- strength
+- stability
+- affected_objects
 
-### STEP 9｜统一风场 Wind Field
-所有受风对象必须来自同一风场。
+所有头发、衣带、尾羽、旗帜、薄云必须遵循同一主风向。
 
-先定义：
+### STEP 11｜因果运动图 Causal Motion Graph
+所有二级运动必须能够写成：
 
-- 风向
-- 风速
-- 风是否稳定
-- 哪些对象受风
-
-人物头发、袖口、飘带、羽毛、薄云等必须方向一致，避免各自动。
-
-### STEP 10｜环境因果
-环境只能承担：
-
-1. 空间尺度
-2. 物理真实性
-3. 对主运动的响应
+`Primary Cause -> Secondary Response`
 
 例如：
 
-- 凤凰翼下压 → 附近薄云轻微卷动
-- 瀑布落下 → 水雾扩散
-- 高空风 → 衣带和旗帜同方向响应
+- wing downstroke -> nearby mist curls
+- high-altitude wind -> ribbon + hair drift
+- waterfall impact -> mist expansion + surface ripples
+- body turn -> costume inertia
 
-避免大规模无因果粒子、风暴或魔法特效。
+如果无法找到物理原因，则删除该运动。
 
-### STEP 11｜光影控制
-默认锁定：
+### STEP 12｜环境因果
+环境只能承担：空间尺度、物理真实性、对主运动的响应。避免大规模无因果粒子、风暴或魔法特效。
 
-- 主光方向
-- 色温
-- 曝光
-- 时间状态
-- 天空综合色彩
+### STEP 13｜光影控制
+默认锁定主光方向、色温、曝光、时间状态与综合色彩。只允许材质高光、水面反射、羽毛反光、局部云遮等细微连续变化。
 
-只允许材质高光、水面反射、羽毛反光、局部云遮等细微连续变化。
+### STEP 14｜时间轴
+3秒：0–0.5s 建立；0.5–2.3s 主动作；2.3–3.0s 自然延续。
 
-禁止：光源跳变、曝光闪烁、日夜转换、色温突变。
+5秒：0–1s 建立；1–4s 发展；4–5s 自然延续。
 
-### STEP 12｜时间轴
-#### 3秒
-- 0.0–0.5s：建立稳定世界
-- 0.5–2.3s：主动作发生
-- 2.3–3.0s：自然延续
+8–10秒：建立 → 发展 → 收束。
 
-#### 5秒
-- 0–1s：建立
-- 1–4s：发展
-- 4–5s：自然延续
+禁止最后一帧突然停止。
 
-#### 8–10秒
-- 建立 → 发展 → 收束
+### STEP 15｜情绪翻译为摄影语言
+- 压迫：low angle + scale contrast + slow push-in
+- 宏大：layered depth + slow movement + atmospheric perspective
+- 唯美：soft secondary motion + restrained highlights
+- 宁静：low-frequency motion + stable camera
+- 神秘：partial occlusion + slow reveal + fog depth
+- 紧张：limited FOV + micro push + restrained subject movement
 
-禁止在最后一帧突然停止，镜头应像从更长电影片段中截取。
+### STEP 16｜Auto Degrade 自动降级
+出现任意2项即自动降低复杂度：
 
-### STEP 13｜情绪翻译为摄影语言
-不得只堆“宏大 / 压迫 / 唯美 / 宁静”。
+- 主体数量 >2
+- 镜头运动 >1主+1辅
+- 明显环境运动 >3
+- 存在大面积文字
+- 需要生成大量隐藏面
+- 复杂羽毛 + 快速运动
+- 透明灵体 + 人体大动作
 
-- 压迫：低机位、尺度差、慢推进、前景压框
-- 宏大：多层景深、空气透视、缓慢运动、巨物有重量
-- 唯美：柔和次级运动、自然高光、连续色彩
-- 宁静：少动作、低频运动、稳定摄影机
-- 神秘：遮挡、留白、缓慢显露、低频雾气
-- 紧张：微推进、有限视野、主体克制但有潜在运动
+降级顺序：
 
-### STEP 14｜负面约束生成
-必须针对当前图像定制。
+1. 删除光影动态
+2. 删除非必要粒子
+3. 环境运动降为低频
+4. 二级动作减少
+5. 主动作减幅
+6. 镜头降为单轴或静机
 
-建筑：architectural deformation, building drift, roof distortion, geometry warping, structural morphing, building breathing
+### STEP 17｜负面约束生成
+必须针对当前图像定制：建筑变形、人物身份变化、动物增肢 / 翼数变化、镜头抖动、闪烁、纹理爬动、几何漂移、物体突然出现 / 消失、构图改变等。
 
-人物：face deformation, identity change, extra limbs, extra fingers, body mutation, costume change
-
-动物：extra wings, missing wings, wing deformation, tail mutation, feather melting, body proportion change
-
-镜头：camera shake, rapid zoom, sudden rotation, violent movement, unwanted orbit
-
-时间一致性：flickering, frame jumping, texture crawling, temporal inconsistency, object popping, geometry drift
-
-场景：new characters, duplicate animals, new buildings, disappearing objects, composition change
-
-### STEP 15｜文字与纹理保护
+### STEP 18｜文字与纹理保护
 原图若含书法、字幕、铭文、壁画、彩绘、复杂纹样，必须加入：
 
 > Do not regenerate, rewrite or alter the original text, calligraphy, ornament or surface pattern.
 
-相关区域只允许极小视差和极轻微反光。
-
-### STEP 16｜平台适配
-#### Kling / 可灵
-提示词前半段优先：
+### STEP 19｜平台适配
+Kling / 可灵提示词前半段优先：
 
 1. 什么绝对不能变
 2. 谁是主运动主体
@@ -360,15 +288,13 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 4. 摄影机怎么动
 5. 环境如何响应
 
-风格标签如 8K、IMAX、UE5、epic、cinematic 放在后部。
+风格标签放在后部。其他平台保留同一导演逻辑。
 
-短镜头重点：结构锁定、小幅镜头、单一清晰动作、真实物理、时间一致性、定制负面约束。
+### STEP 20｜Prompt Compiler
+正式输出前，将导演分析编译为内部 IR，再生成平台 Prompt。IR 至少包含：dominant_scene、risk_level、visual_anchor、scale_reference、locked_objects、primary_motion、secondary_motion、ambient_motion、camera、wind_field、negative_focus。
 
-#### Runway / Veo / Hailuo / 即梦
-保持同一导演逻辑，但根据平台语言偏好压缩或扩展。不得为了平台适配改变核心运动主次和结构锁定原则。
-
-### STEP 17｜自动风险复核
-在输出正式提示词前，自动检查：
+### STEP 21｜自动风险复核
+输出正式提示词前自动检查：
 
 - 是否出现多个明显动作竞争
 - 是否要求建筑运动
@@ -378,32 +304,30 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 - 是否把风格词放在结构控制之前
 - 是否存在“每个东西都动”的倾向
 
-如命中3项以上，必须自动简化。
+命中3项以上必须自动简化。
+
+### STEP 22｜40分质检 + Hard Fail
+执行 `tests/evaluation-checklist.md` 中的评分与 Hard Fail 规则；不合格则自动修复后重新编译。
 
 ---
 
 ## 04. 输出格式（Output Format）
-每次执行本 Skill，默认输出：
+默认输出：
 
 ### A. 导演判断
 一句话给出该镜头的核心导演逻辑。
 
 ### B. 空间分层
-- 前景
-- 中景
-- 远景
-- 视觉锚点
-- 尺度参照
-- 锁定结构
+前景 / 中景 / 远景 / 视觉锚点 / 尺度参照 / 锁定结构。
 
 ### C. 风险评级
 LOW / MEDIUM / HIGH，并说明主要风险。
 
 ### D. 运动预算
-使用表格：对象 / 权重 / 作用。
+对象 / 权重 / 作用。
 
 ### E. 镜头设计
-主镜头、辅助运动、禁止使用的镜头及原因。
+主镜头、辅助运动、禁止镜头及原因。
 
 ### F. 主体运动设计
 起始 → 动作 → 惯性 → 延续。
@@ -430,14 +354,14 @@ LOW / MEDIUM / HIGH，并说明主要风险。
 11. 【输出】
 
 ### J. 极简版提示词
-在完整提示词之后，再输出一版适合平台直接粘贴的精简提示词，保留结构锁定、主动作、镜头、关键负面约束。
+保留结构锁定、主动作、镜头、关键负面约束，可直接粘贴平台。
 
 ---
 
 ## 05. 最终质量检查（Quality Checks）
 - [ ] 已识别前景、中景、远景
-- [ ] 已明确视觉锚点和尺度参照
-- [ ] 已完成 LOW / MEDIUM / HIGH 风险评级
+- [ ] 已明确 dominant_scene、视觉锚点和尺度参照
+- [ ] 已完成 0–10 风险评分与 LOW / MEDIUM / HIGH 分级
 - [ ] 已明确绝对不能动的结构
 - [ ] 只有1个主要镜头运动
 - [ ] 最多2个明显运动主体
@@ -445,11 +369,10 @@ LOW / MEDIUM / HIGH，并说明主要风险。
 - [ ] 所有风动对象遵循同一风场
 - [ ] 建筑默认保持固定
 - [ ] 人物动作与人物画面尺寸匹配
-- [ ] 人物身份、比例、服装、位置受到保护
 - [ ] 文字、书法、壁画和复杂纹理受到保护
 - [ ] 避免无必要的大幅环绕
 - [ ] 避免高风险隐藏面推断
-- [ ] 根据时长控制运动预算
+- [ ] 根据风险等级分配 Safety Reserve
 - [ ] 存在“主运动 → 二级响应”因果
 - [ ] 环境只辅助，不抢主体
 - [ ] 保持原图主光方向和综合色彩
@@ -458,6 +381,9 @@ LOW / MEDIUM / HIGH，并说明主要风险。
 - [ ] 限制闪烁、纹理爬动、几何漂移
 - [ ] 情绪通过摄影语言体现
 - [ ] 没有所有对象同时明显运动
+- [ ] 已执行 Auto Degrade 条件检查
+- [ ] 已形成 Prompt Compiler IR
+- [ ] 已执行 40 分评分与 Hard Fail 检查
 - [ ] 正式提示词可直接交给目标平台
 - [ ] 输出同时提供完整版与极简版
 
@@ -465,8 +391,20 @@ LOW / MEDIUM / HIGH，并说明主要风险。
 
 ---
 
+## References
+执行时同时参考：
+
+- `references/director-rules.md`
+- `references/prompt-compiler.md`
+- `references/auto-director-decision-tree.md`
+- `examples/golden-examples.md`
+- `examples/compiler-examples.md`
+- `tests/evaluation-checklist.md`
+
+---
+
 ## 触发方式
-用户出现以下任一意图时，调用本 Skill：
+用户出现以下任一意图时调用：
 
 - “这张图做图转视频”
 - “给我Kling提示词”
@@ -475,11 +413,14 @@ LOW / MEDIUM / HIGH，并说明主要风险。
 - “先把静态图理解成真实摄影世界”
 - “不要所有东西都动”
 - “帮我做AI导演视频提示词”
+- “使用 AI Director Image-to-Video Prompt SKILL 处理这张图”
 
 ---
 
 ## 核心导演口诀
 **先锁结构，再动镜头。**
+
+**先做风险控制，再做电影化。**
 
 **先定主角，再分运动。**
 
