@@ -12,14 +12,15 @@
 - 如何降低建筑、人物、动物和纹理的 AI 变形风险
 - 如何把同一导演 IR 编译为不同平台最适合的提示词
 - 如何在发布前自动评分、Hard Fail 检查并自我修复
+- 如何在 SAFE / BALANCED / EXPRESSIVE 三档候选中自动选择最稳的一版
 
 ## 当前版本
 
-**V6 — Quality Scoring & Self-Repair Engine**
+**V7 — Adaptive Shot Planner**
 
 当前流程：
 
-`原图拉片 → 场景分类 → Structural Lock → 风险评分 → 主运动选择 → Camera Decision Tree → Motion Budget → Wind Field → Causal Motion Graph → Auto Degrade → Director IR → Platform Router → Platform Compiler → 40分评分 → Hard Fail → Diagnose → Repair → Recompile → Rescore → Release`
+`原图拉片 → 场景分类 → Structural Lock → 风险评分 → 主运动选择 → Camera Decision Tree → Motion Budget → Wind Field → Causal Motion Graph → Auto Degrade → Director IR → SAFE / BALANCED / EXPRESSIVE 候选 → Stability Score → Auto Selection → Platform Router → Platform Compiler → 40分评分 → Hard Fail → Diagnose → Repair → Recompile → Rescore → Release`
 
 ## 目录
 
@@ -29,9 +30,11 @@
 - `references/auto-director-decision-tree.md`：V4 自动导演决策树。
 - `references/platform-compilers.md`：V5 平台专用编译器与 Platform Router。
 - `references/self-repairer.md`：V6 自动评分、诊断、自我修复与安全降级。
+- `references/adaptive-shot-planner.md`：V7 SAFE / BALANCED / EXPRESSIVE 自适应镜头规划器。
 - `examples/golden-examples.md`：标准测试案例。
 - `examples/compiler-examples.md`：导演分析 → IR → 平台 Prompt 编译案例。
-- `tests/evaluation-checklist.md`：V6 40分质量评估、Hard Fail 与修复循环。
+- `tests/evaluation-checklist.md`：40分质量评估与 Hard Fail 检查。
+- `tests/adaptive-shot-planner-tests.md`：V7 自适应镜头规划验收测试。
 
 ## 推荐输入格式
 
@@ -58,12 +61,14 @@
 7. 环境因果
 8. 时间轴
 9. Director IR（默认可隐藏）
-10. 正式平台提示词
-11. 极简版提示词
-12. 负面提示词
-13. Quality Score / Grade
-14. 是否触发修复
-15. Release Status
+10. 推荐镜头档位（SAFE / BALANCED / EXPRESSIVE）
+11. Stability Score 与选择理由
+12. 正式平台提示词
+13. 极简版提示词
+14. 负面提示词
+15. Quality Score / Grade
+16. 是否触发修复
+17. Release Status
 
 ## V5 平台路由
 
@@ -95,19 +100,30 @@
 ### Hard Fail
 以下问题一票否决：建筑主体变形、3秒多个复杂主动作、文字大幅形变、人物身份/数量未锁定、巨型鸟高频扑翼、复杂单图大幅环绕、风向冲突、无定制负面约束、平台版改变 Director IR、明显时间跳变等。
 
-### 第3轮仍不合格
-自动执行 `Maximum Safe Degrade`：
+## V7 Adaptive Shot Planner
 
-- Static / very slow push-in
-- 1 个 Primary Motion
-- <=1 Secondary Motion
-- <=1 Ambient Motion
-- Lighting locked
-- No orbit
-- No hidden geometry expansion
-- No new objects
+同一 Director IR 先生成三档候选，但默认只向用户展示最推荐的一版：
 
-目标从“最炫”切换为“最稳”。
+- `SAFE`：最高稳定性，适合 HIGH RISK
+- `BALANCED`：稳定性与电影感平衡，适合 MEDIUM RISK
+- `EXPRESSIVE`：仅在 LOW RISK 且结构简单时启用
+
+### 自动选择
+- HIGH RISK → SAFE
+- MEDIUM RISK → BALANCED；若包含复杂文字、古建、透明灵体、巨型羽毛则回退 SAFE
+- LOW RISK → BALANCED；仅当隐藏面少、无文字锁定、主体轮廓清晰时允许 EXPRESSIVE
+
+### Stability Score｜100分
+- Structural preservation：30
+- Motion simplicity：20
+- Camera safety：15
+- Physical causality：15
+- Temporal continuity：10
+- Texture / text preservation：10
+
+默认推荐候选必须 >=80 且无 Hard Fail。
+
+V7 不替代 V6：**V7 负责选方案，V6 负责修方案。**
 
 ## 核心原则
 
@@ -120,6 +136,8 @@
 - 形可以不动，质可以流动。
 - 平台表达可以变化，导演决策不能变化。
 - 第一次 Prompt 只是 Draft，不是成品。
+- 先比较候选，再选择最稳镜头。
+- 生成稳定性优先于文字华丽程度。
 - 不是让所有东西动，而是让观众相信整个世界正在运行。
 
 ## 适用场景
