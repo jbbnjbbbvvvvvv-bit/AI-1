@@ -13,14 +13,15 @@
 - 如何把同一导演 IR 编译为不同平台最适合的提示词
 - 如何在发布前自动评分、Hard Fail 检查并自我修复
 - 如何在 SAFE / BALANCED / EXPRESSIVE 三档候选中自动选择最稳的一版
+- 如何根据时长、画幅、风险、场景和情绪自动生成稳定参数起点
 
 ## 当前版本
 
-**V7 — Adaptive Shot Planner**
+**V8 — Adaptive Parameter Preset Engine**
 
 当前流程：
 
-`原图拉片 → 场景分类 → Structural Lock → 风险评分 → 主运动选择 → Camera Decision Tree → Motion Budget → Wind Field → Causal Motion Graph → Auto Degrade → Director IR → SAFE / BALANCED / EXPRESSIVE 候选 → Stability Score → Auto Selection → Platform Router → Platform Compiler → 40分评分 → Hard Fail → Diagnose → Repair → Recompile → Rescore → Release`
+`原图拉片 → 场景分类 → Structural Lock → 风险评分 → 主运动选择 → V8 Preset Router → Parameter Clamp → Director IR → V7 SAFE/BALANCED/EXPRESSIVE 候选 → Stability Score → Auto Selection → Platform Router → Platform Compiler → V6 40分评分 → Hard Fail → Diagnose → Repair → Recompile → Rescore → Release`
 
 ## 目录
 
@@ -31,10 +32,12 @@
 - `references/platform-compilers.md`：V5 平台专用编译器与 Platform Router。
 - `references/self-repairer.md`：V6 自动评分、诊断、自我修复与安全降级。
 - `references/adaptive-shot-planner.md`：V7 SAFE / BALANCED / EXPRESSIVE 自适应镜头规划器。
+- `references/preset-engine.md`：V8 时长 / 画幅 / 风险 / 场景 / 情绪参数预设与 Clamp。
 - `examples/golden-examples.md`：标准测试案例。
 - `examples/compiler-examples.md`：导演分析 → IR → 平台 Prompt 编译案例。
 - `tests/evaluation-checklist.md`：40分质量评估与 Hard Fail 检查。
-- `tests/adaptive-shot-planner-tests.md`：V7 自适应镜头规划验收测试。
+- `tests/adaptive-shot-planner-tests.md`：V7 镜头规划验收测试。
+- `tests/preset-engine-tests.md`：V8 参数预设验收测试。
 
 ## 推荐输入格式
 
@@ -55,14 +58,14 @@
 1. 导演判断
 2. 空间分层
 3. 风险评级
-4. 运动预算
-5. 镜头设计
-6. 主体运动设计
-7. 环境因果
-8. 时间轴
-9. Director IR（默认可隐藏）
-10. 推荐镜头档位（SAFE / BALANCED / EXPRESSIVE）
-11. Stability Score 与选择理由
+4. 推荐 Preset 与参数摘要
+5. 推荐镜头档位（SAFE / BALANCED / EXPRESSIVE）
+6. Stability Score 与选择理由
+7. 运动预算
+8. 镜头设计
+9. 主体运动设计
+10. 环境因果
+11. 时间轴
 12. 正式平台提示词
 13. 极简版提示词
 14. 负面提示词
@@ -70,20 +73,47 @@
 16. 是否触发修复
 17. Release Status
 
-## V5 平台路由
+Director IR 与完整 preset_output 默认隐藏，用户要求时再显示。
 
-- Kling / 可灵 → `KLING Compiler`
-- Veo → `VEO Compiler`
-- Runway → `RUNWAY Compiler`
-- Hailuo / 海螺 → `HAILUO Compiler`
-- 即梦 → `JIMENG Compiler`
-- 未指定平台 → `PLATFORM_NEUTRAL`
+## V8 Preset Router
 
-多平台模式只进行一次导演分析和一次 IR 生成，再分别编译，保证不同平台版本共享同一主运动、摄影机和结构锁定逻辑。
+Preset Router 根据：
+
+- 时长：3s / 5s / 8–10s
+- 画幅：9:16 / 16:9 / 2.39:1
+- 风险：LOW / MEDIUM / HIGH
+- 场景：HUMAN / CREATURE / ARCHITECTURE / WATER / ATMOSPHERE / ENTITY / TEXTURE_LOCK / MIXED
+- 情绪：压迫 / 宏大 / 唯美 / 宁静 / 神秘 / 紧张
+- 平台：Kling / Veo / Runway / Hailuo / 即梦
+
+生成稳定参数起点。
+
+Preset 合并优先级：
+
+`Structural Lock > Risk > Scene > Duration > Aspect > Mood > Platform`
+
+关键约束：
+- HIGH risk：camera_strength <= 0.30
+- MEDIUM risk：camera_strength <= 0.55
+- LOW risk：camera_strength <= 0.75
+- 复杂文字 / 书法：lighting_variation <= 0.10
+- 建筑主体：motion budget = 0
+- 巨型灵体：limb_action_complexity <= 0.20
+- 巨型凤凰 3 秒：wingbeat_count <= 1
+
+## V7 Adaptive Shot Planner
+
+同一 Director IR 生成最多三档候选：
+
+- `SAFE`：最高稳定性，适合 HIGH RISK
+- `BALANCED`：稳定性与电影感平衡
+- `EXPRESSIVE`：仅 LOW RISK 且结构简单时启用
+
+默认推荐候选 Stability Score 必须 >=80 且无 Hard Reject。
 
 ## V6 Quality Gate
 
-每个平台 Prompt 第一次生成后只视为 `DRAFT`，不能直接发布。
+每个平台 Prompt 第一次生成后只视为 `DRAFT`。
 
 必须执行：
 
@@ -91,52 +121,23 @@
 
 最多自动修复 3 轮。
 
-### 分数
 - 36–40：`PRODUCTION_READY`
 - 31–35：`GOOD`
 - 25–30：继续修复
 - 0–24：强制重构
 
-### Hard Fail
-以下问题一票否决：建筑主体变形、3秒多个复杂主动作、文字大幅形变、人物身份/数量未锁定、巨型鸟高频扑翼、复杂单图大幅环绕、风向冲突、无定制负面约束、平台版改变 Director IR、明显时间跳变等。
-
-## V7 Adaptive Shot Planner
-
-同一 Director IR 先生成三档候选，但默认只向用户展示最推荐的一版：
-
-- `SAFE`：最高稳定性，适合 HIGH RISK
-- `BALANCED`：稳定性与电影感平衡，适合 MEDIUM RISK
-- `EXPRESSIVE`：仅在 LOW RISK 且结构简单时启用
-
-### 自动选择
-- HIGH RISK → SAFE
-- MEDIUM RISK → BALANCED；若包含复杂文字、古建、透明灵体、巨型羽毛则回退 SAFE
-- LOW RISK → BALANCED；仅当隐藏面少、无文字锁定、主体轮廓清晰时允许 EXPRESSIVE
-
-### Stability Score｜100分
-- Structural preservation：30
-- Motion simplicity：20
-- Camera safety：15
-- Physical causality：15
-- Temporal continuity：10
-- Texture / text preservation：10
-
-默认推荐候选必须 >=80 且无 Hard Fail。
-
-V7 不替代 V6：**V7 负责选方案，V6 负责修方案。**
-
 ## 核心原则
 
 - 先锁结构，再动镜头。
 - 先做风险控制，再做电影化。
-- 先定主角，再分运动。
+- 先套稳定参数，再选候选镜头。
 - 建筑不动，环境回应。
 - 人物越小，动作越少。
 - 巨物越大，动作越慢。
 - 形可以不动，质可以流动。
 - 平台表达可以变化，导演决策不能变化。
+- Preset 是起点，不是导演替代品。
 - 第一次 Prompt 只是 Draft，不是成品。
-- 先比较候选，再选择最稳镜头。
 - 生成稳定性优先于文字华丽程度。
 - 不是让所有东西动，而是让观众相信整个世界正在运行。
 
