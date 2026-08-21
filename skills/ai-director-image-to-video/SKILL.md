@@ -1,10 +1,10 @@
-# AI Director Image-to-Video Prompt SKILL V6
+# AI Director Image-to-Video Prompt SKILL V7
 
 ## Skill Name
 AI Director — Cinematic Image-to-Video Prompt Designer
 
 ## 01. 任务目标（Job to be done）
-将用户上传的静态图片先理解为真实摄影机拍摄到的物理世界，再依据构图、空间层级、主体关系、真实物理、镜头情绪、时长和目标平台，自动完成导演决策、平台编译、质量评分与自我修复，生成稳定、电影化、低变形风险的图转视频提示词。
+将用户上传的静态图片先理解为真实摄影机拍摄到的物理世界，再依据构图、空间层级、主体关系、真实物理、镜头情绪、时长和目标平台，自动完成导演决策、候选镜头规划、平台编译、质量评分与自我修复，生成稳定、电影化、低变形风险的图转视频提示词。
 
 核心目标：
 
@@ -12,9 +12,9 @@ AI Director — Cinematic Image-to-Video Prompt Designer
 
 优先级：
 
-**结构一致性 > 风险控制 > 镜头运动 > 一级主体运动 > 二级响应运动 > 环境动态 > 光影变化 > 风格标签**
+**结构一致性 > 风险控制 > 候选稳定性 > 镜头运动 > 一级主体运动 > 二级响应运动 > 环境动态 > 光影变化 > 风格标签**
 
-第一次生成的 Prompt 只视为 Draft，必须通过 V6 Quality Gate 后才能作为最终结果。
+第一次生成的 Prompt 只视为 Draft；候选镜头必须先经过 V7 Stability Selection，再通过 V6 Quality Gate 后才能作为最终结果。
 
 ---
 
@@ -126,10 +126,36 @@ HIGH：Camera10–15 / Primary40–45 / Secondary20 / Ambient5–10 / Light0–3
 ### STEP 20｜Prompt Compiler IR
 生成内部 IR，至少包含：dominant_scene、risk_level、visual_anchor、scale_reference、locked_objects、primary_motion、secondary_motion、ambient_motion、camera、wind_field、negative_focus。
 
-### STEP 21｜平台编译
+### STEP 21｜V7 Adaptive Shot Candidates
+调用 `references/adaptive-shot-planner.md`，基于同一 Director IR 生成最多三档候选：
+
+- SAFE：最高稳定性，适用于 HIGH RISK
+- BALANCED：稳定性与电影感平衡，适用于 MEDIUM RISK
+- EXPRESSIVE：仅 LOW RISK 且结构简单时启用
+
+三个候选必须共享同一 Structural Lock、Visual Anchor、Primary Motion Subject、Wind Field、Lighting Direction 与叙事目标；只能改变镜头幅度、动作幅度、二级响应数量、环境强度与节奏密度。
+
+### STEP 22｜Stability Score & Auto Selection
+每个候选按100分评估：
+
+- Structural preservation：30
+- Motion simplicity：20
+- Camera safety：15
+- Physical causality：15
+- Temporal continuity：10
+- Texture / text preservation：10
+
+默认推荐候选必须 >=80 且无 Hard Fail。
+
+自动选择：
+- HIGH → SAFE
+- MEDIUM → BALANCED；若有复杂文字、古建、透明灵体、巨型羽毛则回退 SAFE
+- LOW → BALANCED；仅主体轮廓清晰、背景简单、隐藏面少、无文字锁定时可选 EXPRESSIVE
+
+### STEP 23｜平台编译
 平台表达可以改变，但 Structural Lock、主运动、Camera Risk、风场、时间轴、Auto Degrade 结果和 Negative Focus 不得改变。
 
-### STEP 22｜40分评分
+### STEP 24｜40分评分
 执行 `tests/evaluation-checklist.md`，20项×0/1/2，总分40。
 
 - 36–40：A / Production Ready
@@ -137,10 +163,10 @@ HIGH：Camera10–15 / Primary40–45 / Secondary20 / Ambient5–10 / Light0–3
 - 25–30：C / Risky
 - 0–24：D / Reject
 
-### STEP 23｜Hard Fail 检测
+### STEP 25｜Hard Fail 检测
 以下任一项阻止发布：建筑主体变形；3秒多个复杂主动作；文字明显形变；人物身份/数量未锁定；巨型鸟高频扑翼；复杂单图大幅 orbit；风向冲突；无定制负面约束；平台编译改变 Director IR；高风险透明灵体大动作；结尾突然停或新增动作。
 
-### STEP 24｜V6 Self-Repair Loop
+### STEP 26｜V6 Self-Repair Loop
 调用 `references/self-repairer.md`：
 
 `DRAFT → SCORE → HARD_FAIL → DIAGNOSE → REPAIR → RECOMPILE → RESCORE → RELEASE`
@@ -149,8 +175,19 @@ HIGH：Camera10–15 / Primary40–45 / Secondary20 / Ambient5–10 / Light0–3
 
 修复优先级：Structural Lock → Identity/Count → Text Lock → Camera Risk → Primary Motion Count → Hidden Geometry → Physics → Wind → Environment → Lighting → Negative → Style Compression。
 
-### STEP 25｜Maximum Safe Degrade
-第3轮仍失败：Static或very slow push-in；Primary=1；Secondary<=1；Ambient<=1；Lighting locked；No orbit；No hidden geometry expansion；No new objects。
+### STEP 27｜V7 Re-selection Rule
+如果当前推荐候选经 V6 修复后仍未达到：
+
+- Stability Score >=80
+- Quality Score >=31
+- Hard Fail = false
+
+则自动切换到更保守档位重新编译：EXPRESSIVE → BALANCED → SAFE。
+
+V7 负责“选方案”，V6 负责“修方案”。
+
+### STEP 28｜Maximum Safe Degrade
+SAFE 经修复仍失败时：Static或very slow push-in；Primary=1；Secondary<=1；Ambient<=1；Lighting locked；No orbit；No hidden geometry expansion；No new objects。
 
 最终状态：PRODUCTION_READY / GOOD / SAFE_FALLBACK / REJECT。
 
@@ -175,19 +212,23 @@ G. 环境因果
 
 H. 时间轴
 
-I. 正式平台提示词
+I. 推荐镜头档位（SAFE / BALANCED / EXPRESSIVE）
 
-J. 极简版提示词
+J. Stability Score 与选择理由
 
-K. 负面提示词
+K. 正式平台提示词
 
-L. Quality Score / Grade
+L. 极简版提示词
 
-M. 是否触发自动修复及修复轮次
+M. 负面提示词
 
-N. Release Status
+N. Quality Score / Grade
 
-Director IR 默认可隐藏，除非用户要求查看。
+O. 是否触发自动修复及修复轮次
+
+P. Release Status
+
+Director IR 默认可隐藏，除非用户要求查看。默认只展示推荐档位；只有用户明确要求多个版本时才输出三档候选。
 
 ---
 
@@ -211,10 +252,13 @@ Director IR 默认可隐藏，除非用户要求查看。
 - [ ] Negative Constraints 针对当前图像
 - [ ] 已执行 Auto Degrade
 - [ ] 已形成统一 Director IR
+- [ ] SAFE / BALANCED / EXPRESSIVE 候选保持同一叙事与主运动逻辑
+- [ ] 推荐候选 Stability Score >=80
 - [ ] 已路由正确平台 Compiler
 - [ ] 已完成40分评分
 - [ ] 无 Hard Fail
 - [ ] 如不合格已完成自动修复
+- [ ] 如仍不合格已切换到更保守档位
 - [ ] 最终状态 >= GOOD，或明确 SAFE_FALLBACK
 
 ---
@@ -225,9 +269,11 @@ Director IR 默认可隐藏，除非用户要求查看。
 - `references/auto-director-decision-tree.md`
 - `references/platform-compilers.md`
 - `references/self-repairer.md`
+- `references/adaptive-shot-planner.md`
 - `examples/golden-examples.md`
 - `examples/compiler-examples.md`
 - `tests/evaluation-checklist.md`
+- `tests/adaptive-shot-planner-tests.md`
 
 ---
 
@@ -252,6 +298,8 @@ Director IR 默认可隐藏，除非用户要求查看。
 **画面越复杂，镜头越克制。**
 
 **形可以不动，质可以流动。**
+
+**先比较候选，再选择最稳镜头。**
 
 **第一次 Prompt 只是 Draft。**
 
