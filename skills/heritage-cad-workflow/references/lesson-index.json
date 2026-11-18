@@ -1,0 +1,112 @@
+[
+  {
+    "id": "n03-shared-resource-protection",
+    "status": "VERIFIED",
+    "topic": "quality",
+    "fingerprint": "e2fae58aa80d8e68e08f1e5ffc2086dcd5cff80a5ca4ff6e98f34cf1eb154d9d",
+    "rule_files": [
+      "references/quality-audit.md",
+      "scripts/cad_checks.py"
+    ]
+  },
+  {
+    "id": "n03-integrated-block-protection",
+    "status": "VERIFIED",
+    "topic": "transfer",
+    "fingerprint": "c1e7e43635ec826addcc207d47d5615a9eeeae3ea98ce4c1d6e2c014793eb27d",
+    "rule_files": [
+      "references/dxf-transfer.md",
+      "references/quality-audit.md"
+    ]
+  },
+  {
+    "id": "n03-outline-collision-check",
+    "status": "VERIFIED",
+    "topic": "transfer",
+    "fingerprint": "cbc7fc0a29187e2b8d33025b9c9a465f0154804f8c72f5a8728b82384e6cfcda",
+    "rule_files": [
+      "references/dxf-transfer.md"
+    ]
+  },
+  {
+    "id": "n03-actual-viewport-context",
+    "status": "VERIFIED",
+    "topic": "quality",
+    "fingerprint": "877547e009242fb71a8ef5a9d7cf3eea0e334b8c4c1ae20ed3bb9a829d681a27",
+    "rule_files": [
+      "references/quality-audit.md",
+      "references/transfer-layout.md"
+    ]
+  },
+  {
+    "id": "lesson-transaction-safeguards",
+    "status": "VERIFIED",
+    "topic": "quality",
+    "fingerprint": "fd260743d829eed4ae8fdc1c3564d0cecdee76e418491396b9497251b79a3ac2",
+    "rule_files": [
+      "references/learning-protocol.md",
+      "scripts/maintain_lessons.py",
+      "tests/test_maintain_lessons.py"
+    ]
+  },
+  {
+    "id": "windows-utf8-skill-validation",
+    "status": "VERIFIED",
+    "topic": "quality",
+    "fingerprint": "d06ce1ed9db956a16396d36e7c75928b70f1df084757d9a65716b0a86980216b",
+    "rule_files": [
+      "references/quality-audit.md"
+    ]
+  },
+  {
+    "id": "native-arc-inverse-coverage",
+    "status": "CANDIDATE",
+    "topic": "quality",
+    "fingerprint": "30265ff75dcb407075d4b5a5573309f4ce08547d3a8dae918afaf4a96dcb5e5a",
+    "rule_files": []
+  },
+  {
+    "id": "bbox-only-final-acceptance",
+    "status": "REJECTED",
+    "topic": "transfer",
+    "fingerprint": "26ce25e39e4f674e03cc82104078cb7a42c7a02a73d57d9897dc7cc1ee9d1908",
+    "rule_files": []
+  },
+  {
+    "id": "warm-planar-boundary-width-tracing",
+    "status": "VERIFIED",
+    "topic": "lineart",
+    "fingerprint": "8de04702dc99be727d4f0e78f4ff5457afcfd5cc90d510a5b2f4f5dab4de13ec",
+    "rule_files": [
+      "SKILL.md",
+      "references/lineart-cleaning.md",
+      "references/scripts.md",
+      "scripts/trace_coloured_ornament_panels.py",
+      "tests/test_trace_coloured_ornament_panels.py"
+    ]
+  },
+  {
+    "id": "generated-cleanup-geometry-gate",
+    "status": "VERIFIED",
+    "topic": "motif",
+    "fingerprint": "c93046b9ff479190e7221d8d29e40242fdbe2687feddf23d3f1b1c883d26cadd",
+    "rule_files": [
+      "references/motif-preservation.md",
+      "references/quality-audit.md"
+    ]
+  },
+  {
+    "id": "real-photo-shadow-rectification-pipeline",
+    "status": "CANDIDATE",
+    "topic": "lineart",
+    "fingerprint": "1b71cb6d74b5df56e688335f010cc45c30765af0470be5bcf762a47285c933c4",
+    "rule_files": []
+  },
+  {
+    "id": "generated-candidate-as-unchecked-master",
+    "status": "REJECTED",
+    "topic": "motif",
+    "fingerprint": "7651bc6c83bdda259b21ec6c07b34c283fc19344dcc6ed86bd1cbacf4d2a0c3a",
+    "rule_files": []
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "rows": [
+    [
+      0,
+      200
+    ]
+  ],
+  "columns": [
+    [
+      0,
+      200
+    ]
+  ],
+  "geometry_tolerance_px": 0.32,
+  "gaussian_sigma_px": 0.4,
+  "red_chroma_min": 10.0,
+  "physical_scale_known": false,
+  "perspective_transform": "identity",
+  "perspective_note": "Example only: use actual source bounds and evidence; no metric calibration.",
+  "curve_panels": [
+    "R1C1"
+  ]
+}

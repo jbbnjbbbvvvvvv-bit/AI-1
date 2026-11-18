@@ -1,0 +1,11 @@
+{
+  "cases": [
+    {
+      "name": "example",
+      "source": "source.dxf",
+      "before": "target_before.dxf",
+      "after": "target_after.dxf",
+      "block": "ARCHITECTURAL_REFERENCE"
+    }
+  ]
+}

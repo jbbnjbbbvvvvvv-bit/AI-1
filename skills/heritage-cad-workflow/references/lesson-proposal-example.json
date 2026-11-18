@@ -1,0 +1,13 @@
+{
+  "id": "example-pending-evidence",
+  "date": "2026-11-18",
+  "topic": "quality",
+  "status": "CANDIDATE",
+  "review": "clear",
+  "task_type": "几何审计",
+  "problem": "某曲线类型尚缺真实案例验证",
+  "cause": "既有样本未覆盖该实体类型",
+  "evidence": "references/validation.md 的验证范围说明",
+  "solution": "补充真实样本及变形反例后再评估",
+  "validation": "尚未验证，不得报告该分支已通过"
+}

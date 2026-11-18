@@ -1,0 +1,8 @@
+numpy>=1.26
+scipy>=1.11
+Pillow>=10
+contourpy>=1.2
+matplotlib>=3.8
+opencv-python-headless>=4.8
+ezdxf>=1.4.3,<2
+PyYAML>=6

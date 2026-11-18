@@ -1,0 +1,4 @@
+interface:
+  display_name: "历史建筑线稿净化与 CAD 构件重建"
+  short_description: "保护历史建筑纹样与破损形态，完成线稿净化、构件重建、移植和几何核验"
+  default_prompt: "使用 $heritage-cad-workflow 按输入资料完成历史建筑线稿或 CAD 构件任务，先核对来源与保护范围，再执行已授权流程。"

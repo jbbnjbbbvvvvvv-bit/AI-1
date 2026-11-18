@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+.maintenance.lock
+new_results/
+*.dxf
+*.dwg
+*.png
+*.jpg
+*.jpeg
+*.zip
+.env
+.env.*
